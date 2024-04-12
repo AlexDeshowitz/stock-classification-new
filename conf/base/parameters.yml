@@ -1,0 +1,52 @@
+
+# parameters for modeling:
+
+# set the time period and the equity ticker symbols you wish to pull
+stock_pull_settings:
+  equities: ['XLE', 'XLF', 'AAPL']
+  start_date : '2019-01-01' # start date of the modeling period format: '2022-01-01'
+  end_date : '2022-08-31' # end date of the modeling period format: '2022-01-01'
+
+  sleep_min : 2 # minumum amount of sleep to take between pulls
+  sleep_max : 10 # maximum amount of sleep to take between pulls
+  expire_days : 3 # standard set of days until expiration of the cache
+  single_dataframe : True # whether to store all stocks into a single dataframe (recommended for Kedro functionality)
+
+moving_average_settings:
+  stock_field : 'ticker'
+  date_field : 'date'
+  calculation_field : 'close'
+  day_ranges :  [7, 14, 21]
+  exponential: False # whether to return exponential moving averages 
+
+  # calculation outputs:
+  indicator_return_type: 'boolean_and_percentage' # takes boolean, percentage, boolean_and_percentage; input to the create_above_below_indicator_fields function
+
+bollinger_band_settings:
+  moving_average_used : 21 # must be one of the day ranges set in the moving average settings
+  calculation_field : 'close' # need to reference the other dictionary in the definition statement 
+  number_of_std : 2
+  use_sma: True
+  return_top_distance : True
+  return_bottom_distance : True
+  return_gap : True
+
+target_classifier_settings:
+  prediction_horizon: 20 # number of days out we want to classify (e.g., will the equity in question be higher x days from now)
+
+modeling_settings:
+  continuous_feature_cutoff : 0.6 
+  drop_original_fields : True
+  drop_stock_field: True # keep this fixed 
+  test_size : 0.20
+  seed : 1187
+  cross_val_splits: 5
+
+  # classifier settings: (only allowing selected itemsto be specified for V0)
+  support_vector_classifier:
+    c: 1.0
+    kernel: 'rbf'
+    gamma: 'scale'
+    
+
+

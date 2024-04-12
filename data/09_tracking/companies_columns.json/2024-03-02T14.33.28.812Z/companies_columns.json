@@ -1,0 +1,10 @@
+{
+  "columns": [
+    "id",
+    "company_rating",
+    "company_location",
+    "total_fleet_count",
+    "iata_approved"
+  ],
+  "data_type": "companies"
+}

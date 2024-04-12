@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from new_stock_classification.pipelines.data_science.nodes import split_data
+from new_test.pipelines.data_science.nodes import split_data
 
 
 @pytest.fixture
