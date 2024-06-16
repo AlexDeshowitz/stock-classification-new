@@ -201,7 +201,7 @@ def create_bollinger_bands(dataframe: pd.DataFrame, global_parameters: dict, fun
 
         if function_parameters['return_gap'] == True:
             dataframe['bol_range'] = dataframe['upper_bollinger_band'] - dataframe['lower_bollinger_band']
-            dataframe['bol_range_pct'] = (dataframe['upper_bollinger_band'] - dataframe['upper_bollinger_band']) / dataframe[global_parameters['calculation_field']]
+            dataframe['bol_range_pct'] = (dataframe['upper_bollinger_band'] - dataframe['lower_bollinger_band']) / dataframe[global_parameters['calculation_field']]
 
     elif function_parameters['use_sma'] == False:
 
@@ -221,6 +221,10 @@ def create_bollinger_bands(dataframe: pd.DataFrame, global_parameters: dict, fun
         if function_parameters['return_bottom_distance'] == True:
             dataframe['bol_pct_from_bottom'] = dataframe[global_parameters['calculation_field']] / dataframe['lower_bollinger_band'] -1
     
+        if function_parameters['return_gap'] == True:
+            dataframe['bol_range'] = dataframe['upper_bollinger_band'] - dataframe['lower_bollinger_band']
+            dataframe['bol_range_pct'] = (dataframe['upper_bollinger_band'] - dataframe['lower_bollinger_band']) / dataframe[global_parameters['calculation_field']]
+
 
     return dataframe
 

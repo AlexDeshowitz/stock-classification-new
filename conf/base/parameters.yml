@@ -42,7 +42,7 @@ modeling_settings:
   seed : 1187
   cross_val_splits: 5
 
-  # classifier settings: (only allowing selected itemsto be specified for V0)
+  # classifier settings: (only allowing selected items to be specified for V0)
   support_vector_classifier:
     c: 1.0
     kernel: 'rbf'
