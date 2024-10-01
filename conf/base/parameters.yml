@@ -41,6 +41,7 @@ modeling_settings:
   test_size : 0.20
   seed : 1187
   cross_val_splits: 5
+  optimization_target: 'train_true_positives'
 
   # classifier settings: (only allowing selected items to be specified for V0)
   support_vector_classifier:

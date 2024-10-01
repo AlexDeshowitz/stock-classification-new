@@ -66,6 +66,41 @@ y_test:
   filepath: data/05_model_input/y_test.csv
 
 
+################################################################################
+# 06 MODELS
+################################################################################
+
+
+################################################################################
+# 07 MODEL OUTPUT
+################################################################################
+
+### Pre-champion selection
+detailed_model_results:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/detailed_model_results.csv
+
+aggregated_model_results:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/aggregated_model_results.csv
+
+detailed_feature_importances:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/detailed_feature_importances.csv
+
+feature_importances:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/feature_importances.csv
+
+
+### Champion model
+
+champion_model_details:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/champion_model_details.csv
+
+
+
 
 #### TEST - WILL NOT BE IN FINAL PIPELINE -- Here for ad-hoc pipeline development:
 
