@@ -19,7 +19,8 @@ def register_pipelines() -> Dict[str, Pipeline]:
 
     return {
        
-            "__default__": feature_engineering_pipeline + pre_processing_pipeline,
+            "__default__": feature_engineering_pipeline + pre_processing_pipeline + data_science_pipeline,
+            "full_run": data_pull_pipeline + feature_engineering_pipeline + pre_processing_pipeline + data_science_pipeline,
 
             # register individual pipelines:
             "data_pull_only" : data_pull_pipeline,
