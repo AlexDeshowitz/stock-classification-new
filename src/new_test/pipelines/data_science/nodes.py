@@ -7,6 +7,7 @@ from typing import Dict, Tuple
 
 import pandas as pd
 import numpy as np
+import importlib
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
 # visualization tools:
@@ -60,85 +61,76 @@ def extract_feature_importances(X: np.array, model: BaseEstimator) -> pd.DataFra
     return feature_importance_df
 
 
-def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series, parameters: dict) -> pd.DataFrame:
+def dynamic_import(class_path: str):
+    """Dynamically imports a class from its full path."""
+    module_name, class_name = class_path.rsplit('.', 1)
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
 
-    #TODO: Add documentation
+
+def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series, parameters: dict) -> pd.DataFrame:
     
-    # Convert y_train to a 1D array
+    '''WRITE DOCUMENTATION'''
+    
+    # Convert y_train to a 1D array if it's a DataFrame
     y_train = y_train.iloc[:, 0].values if isinstance(y_train, pd.DataFrame) else y_train.values
     
     # Store feature names from the DataFrame
     feature_names = X_train.columns
     
-    # instantiate the classifiers
-    classifiers = { 
-        'Logistic_regression': LogisticRegression(penalty='l2', max_iter=100000, C=1.0, n_jobs=-1),
-        'Random_forest': RandomForestClassifier(n_estimators=200, criterion='gini', min_samples_split=2, min_samples_leaf=10, max_features='sqrt', n_jobs=-1),
-        'Support_vector_classifier': SVC(),
-        'XGBoost': XGBClassifier(use_label_encoder=False, eval_metric='logloss', n_jobs=-1),
-        'K_nearest_neighbors': KNeighborsClassifier()
-    }
+    # Initialize metrics storage
+    model, classifier_details, fold = [], [], []
+    train_precisions, test_precisions = [], []
+    train_recalls, test_recalls = [], []
+    train_f_scores, test_f_scores = [], []
+    train_accuracies, test_accuracies = [], []
+    train_true_positives, test_true_positives = [], []
+    train_true_negatives, test_true_negatives = [], []
+    train_false_positives, test_false_positives = [], []
+    train_false_negatives, test_false_negatives = [], []
 
-    cv = StratifiedKFold(n_splits=parameters['cross_val_splits'], shuffle=True, random_state=parameters['seed']).split(X_train, y_train)
-
-    # Create storage for performance metrics and feature importances
-    model = []
-    classifier_details = []
-    fold = []
-    train_precisions = []
-    test_precisions = []
-    train_recalls = []
-    test_recalls = []
-    train_f_scores = []
-    test_f_scores = []
-    train_accuracies = []
-    test_accuracies = []
-    train_true_positives = []
-    test_true_positives = []
-    train_true_negatives = []
-    test_true_negatives = []
-    train_false_positives = []
-    test_false_positives = []
-    train_false_negatives = []
-    test_false_negatives = []
-    
-    # Storage for feature importances or coefficients
     feature_importances_df = pd.DataFrame()
 
-    for name, classifier in classifiers.items():
-        clf = classifier
-        print('Training: ' + name + ' classifier')
+    # Iterate through classifiers specified in the parameters
+    for clf_name, clf_info in parameters['classifiers'].items():
+        # Dynamically import and instantiate classifier
+        clf_class = dynamic_import(clf_info['class_path'])
+        clf_params = clf_info['params']
+        clf = clf_class(**clf_params)  # Initialize classifier with params
 
+        print(f'Training: {clf_name} classifier')
+
+        # Cross-validation loop
         cv = StratifiedKFold(n_splits=parameters['cross_val_splits'], shuffle=True, random_state=parameters['seed']).split(X_train, y_train)
 
         for k, (fold_train, fold_test) in enumerate(cv):
-            # Convert to NumPy arrays for sklearn fitting
             clf.fit(X_train.iloc[fold_train].values, y_train[fold_train])
             
-            # create predictions
+            # Predictions
             train_pred = clf.predict(X_train.iloc[fold_train].values)
             test_pred = clf.predict(X_train.iloc[fold_test].values)
 
+            # Confusion matrices
             train_confusion_matrix = confusion_matrix(y_train[fold_train], train_pred)
             test_confusion_matrix = confusion_matrix(y_train[fold_test], test_pred)
 
-            # calculate performance metrics
+            # Accuracy
             train_accuracy = clf.score(X_train.iloc[fold_train].values, y_train[fold_train])
             test_accuracy = clf.score(X_train.iloc[fold_test].values, y_train[fold_test])
 
-            # calculate precision
+            # Precision
             train_precision = precision_score(y_train[fold_train], train_pred)
             test_precision = precision_score(y_train[fold_test], test_pred)
 
-            # calculate recall
+            # Recall
             train_recall = recall_score(y_train[fold_train], train_pred)
             test_recall = recall_score(y_train[fold_test], test_pred)
 
-            # calculate f-measure
+            # F1 Score
             train_f = f1_score(y_train[fold_train], train_pred)
             test_f = f1_score(y_train[fold_test], test_pred)
 
-            # true positives, negatives, etc.
+            # True/False Positives/Negatives
             train_tp = train_confusion_matrix[1,1]
             test_tp = test_confusion_matrix[1,1]
             train_tn = train_confusion_matrix[0,0]
@@ -148,9 +140,9 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
             train_fn = train_confusion_matrix[1,0]
             test_fn = test_confusion_matrix[1,0]
 
-            # append metrics
-            model.append(name)
-            classifier_details.append(classifier)
+            # Append metrics
+            model.append(clf_name)
+            classifier_details.append(clf)
             fold.append(k)
             train_accuracies.append(train_accuracy)
             test_accuracies.append(test_accuracy)
@@ -169,38 +161,35 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
             train_false_negatives.append(train_fn)
             test_false_negatives.append(test_fn)
 
-            # extract feature importances or coefficients for applicable models
-            if hasattr(clf, "coef_"):  # for Logistic Regression
+            # Extract feature importances or coefficients
+            if hasattr(clf, "coef_"):  # For LogisticRegression
                 feature_importances = clf.coef_.flatten()
                 temp_df = pd.DataFrame({
-                    "model": [name]*len(feature_importances),
+                    "model": [clf_name]*len(feature_importances),
                     "fold": [k]*len(feature_importances),
-                    "feature": feature_names,  # Use feature names
+                    "feature": feature_names,
                     "importance": feature_importances
                 })
                 feature_importances_df = pd.concat([feature_importances_df, temp_df], ignore_index=True)
             
-            elif hasattr(clf, "feature_importances_"):  # for RandomForest, XGBoost
+            elif hasattr(clf, "feature_importances_"):  # For RandomForest, XGBoost
                 feature_importances = clf.feature_importances_
                 temp_df = pd.DataFrame({
-                    "model": [name]*len(feature_importances),
+                    "model": [clf_name]*len(feature_importances),
                     "fold": [k]*len(feature_importances),
-                    "feature": feature_names,  # Use feature names
+                    "feature": feature_names,
                     "importance": feature_importances
                 })
                 feature_importances_df = pd.concat([feature_importances_df, temp_df], ignore_index=True)
-    
-    # create feature importance summary:
 
-    feature_importances_summmary_df = feature_importances_df.groupby(by = ['model', 'feature']).agg(
-        importance_value = ('importance' , 'mean')
-    ).reset_index()
+    # Summary of feature importances
+    feature_importances_summary_df = feature_importances_df.groupby(['model', 'feature']).agg(
+        importance_value=('importance', 'mean')).reset_index()
 
-
-    # create a detailed results DataFrame
+    # Detailed results DataFrame
     detailed_results_df = pd.DataFrame({
         "model": model,
-        "classifier_details":classifier_details,
+        "classifier_details": classifier_details,
         "fold": fold,
         "train_accuracy": train_accuracies,
         "test_accuracy": test_accuracies,
@@ -215,11 +204,11 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
         "train_false_positives": train_false_positives,
         "test_false_positives": test_false_positives,
         "train_false_negatives": train_false_negatives,
-        "test_false_negatives": test_false_negatives,
+        "test_false_negatives": test_false_negatives
     })
 
-    # aggregate the results to be read buy the user:
-    results_df = detailed_results_df.groupby(by =['model']).agg({
+    # Aggregated results
+    results_df = detailed_results_df.groupby('model').agg({
         'train_accuracy': 'mean',
         'test_accuracy': 'mean',
         'train_precision': 'mean',
@@ -236,11 +225,16 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
         'test_false_negatives': 'sum'
     }).reset_index()
 
-    # return both performance results and feature importances
-    return detailed_results_df, results_df, feature_importances_df, feature_importances_summmary_df
+    # Add in overall positve-class rates to the datasets:
+    results_df['train_positive_rate'] = (results_df['train_true_positives'] + results_df['train_false_negatives']) / (results_df['train_true_positives'] + results_df['train_false_negatives'] + results_df['train_false_positives'] + results_df['train_true_negatives'])
+    results_df['test_positive_rate'] = (results_df['test_true_positives'] + results_df['test_false_negatives']) / (results_df['test_true_positives'] + results_df['test_false_negatives'] + results_df['test_false_positives'] + results_df['test_true_negatives'])
+
+    # share message with complete:
+    print('training evaluation completed')
+    return detailed_results_df, results_df, feature_importances_df, feature_importances_summary_df
 
 
-def select_champion_model(models: pd.DataFrame, parameters: str):
+def select_champion_model(models: pd.DataFrame, parameters: str) -> pd.DataFrame:
     """
     Selects the champion model based on the highest or lowest value of a given optimization target.
     
