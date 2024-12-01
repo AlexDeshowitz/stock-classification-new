@@ -76,7 +76,7 @@ modeling_settings:
                 },
                 'AdaBoost': {
                     'class_path': 'sklearn.ensemble.AdaBoostClassifier',
-                    'params': {'n_estimators': 50, 'learning_rate': 1.0}
+                    'params': {'n_estimators': 50, 'learning_rate': 1.0, 'algorithm' : 'SAMME'}
                 },
                 'CatBoost': {
                     'class_path': 'catboost.CatBoostClassifier',
