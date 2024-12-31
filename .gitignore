@@ -1,0 +1,45 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Configs and secrets
+data/01_raw/
+data/02_intermediate/
+data/03_primary/
+conf/local/
+
+# Cache files
+*.cache
+*.pkl
+*.joblib
+
+# Build and distribution folders
+build/
+dist/
+*.egg-info/
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Python environment files
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Environment variables
+.env
+*.env
