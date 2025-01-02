@@ -52,7 +52,7 @@ modeling_settings:
                 },
                 'Support_vector_classifier': {
                     'class_path': 'sklearn.svm.SVC',
-                    'params': {'C': 1.0, 'kernel': 'rbf', 'gamma': 'scale'}
+                    'params': {'C': 1.0, 'kernel': 'rbf', 'gamma': 'scale', 'probability': True}
                 },
                 'XGBoost': {
                     'class_path': 'xgboost.XGBClassifier',

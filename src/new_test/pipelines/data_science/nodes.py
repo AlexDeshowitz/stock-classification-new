@@ -24,8 +24,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.base import BaseEstimator
 
 # evaluation functions:
-from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
-
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
 
 
 
@@ -61,6 +60,29 @@ def extract_feature_importances(X: np.array, model: BaseEstimator) -> pd.DataFra
     return feature_importance_df
 
 
+def get_roc_auc_score(y_pred: np.array, y_true: np.array) -> np.array:
+
+    '''Function that returns the auc of the model being run with the functionality to 
+    return the graph output which will be stored in Kedro outputs
+    
+        Args:
+    - y_pred: predictions from the machine learning model
+    - y_actual: actual values being predicted by the machine learning model
+    
+    Returns:
+    - auc: area under the curve; A higher AUC indicates better classification performance
+    
+    '''
+
+    # calculate the tpr and fpr for the different threshold values of the classifier outputs: 
+    fpr, tpr, thresholds = roc_curve(y_true = y_true, y_score = y_pred)
+
+    # AUC calculation:
+    auc_output = auc( x = fpr, y = tpr ) 
+
+    return auc_output
+
+
 def dynamic_import(class_path: str):
     """Dynamically imports a class from its full path."""
     module_name, class_name = class_path.rsplit('.', 1)
@@ -68,18 +90,20 @@ def dynamic_import(class_path: str):
     return getattr(module, class_name)
 
 
+
 def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series, y_test: pd.Series, parameters: dict) -> pd.DataFrame:
     
     '''WRITE DOCUMENTATION'''
     
     # Convert y_train to a 1D array if it's a DataFrame
-    y_train = y_train.iloc[:, 0].values if isinstance(y_train, pd.DataFrame) else y_train.values
-    
+    y_train = y_train.values.ravel() if isinstance(y_train, pd.DataFrame) else y_train.ravel()
+
     # Store feature names from the DataFrame
     feature_names = X_train.columns
     
     # Initialize metrics storage
     model, classifier_details, fold = [], [], []
+    train_aucs, test_aucs = [], []
     train_precisions, test_precisions = [], []
     train_recalls, test_recalls = [], []
     train_f_scores, test_f_scores = [], []
@@ -88,7 +112,8 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
     train_true_negatives, test_true_negatives = [], []
     train_false_positives, test_false_positives = [], []
     train_false_negatives, test_false_negatives = [], []
-
+    
+    # Initialize feature importance storage
     feature_importances_df = pd.DataFrame()
 
     # Iterate through classifiers specified in the parameters
@@ -104,19 +129,35 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
         cv = StratifiedKFold(n_splits=parameters['cross_val_splits'], shuffle=True, random_state=parameters['seed']).split(X_train, y_train)
 
         for k, (fold_train, fold_test) in enumerate(cv):
-            clf.fit(X_train.iloc[fold_train].values, y_train[fold_train])
+            #clf.fit(X_train.iloc[fold_train], y_train[fold_train])
+            clf.fit(X_train.iloc[fold_train], y_train[fold_train])  # Keep DataFrame format
+            train_pred = clf.predict(X_train.iloc[fold_train])           
+            test_pred = clf.predict(X_train.iloc[fold_test])  
             
-            # Predictions
-            train_pred = clf.predict(X_train.iloc[fold_train].values)
-            test_pred = clf.predict(X_train.iloc[fold_test].values)
+            # Predictions (at the 50% threshold)
+            train_pred = clf.predict(X_train.iloc[fold_train])
+            test_pred = clf.predict(X_train.iloc[fold_test])
 
+            
+            # AUC 
+            if hasattr(clf, "predict_proba"): # Note: error, means predict proba exists, but must be set to true in params
+                train_pred_proba = clf.predict_proba(X_train.iloc[fold_train])[:, 1]
+                test_pred_proba = clf.predict_proba(X_train.iloc[fold_test])[:, 1] 
+
+                train_auc = get_roc_auc_score(y_pred = train_pred_proba, y_true = y_train[fold_train])
+                test_auc = get_roc_auc_score(y_pred = test_pred_proba, y_true = y_train[fold_test])
+
+            else:
+                train_auc = np.nan
+                test_auc = np.nan
+            
             # Confusion matrices
             train_confusion_matrix = confusion_matrix(y_train[fold_train], train_pred)
             test_confusion_matrix = confusion_matrix(y_train[fold_test], test_pred)
 
             # Accuracy
-            train_accuracy = clf.score(X_train.iloc[fold_train].values, y_train[fold_train])
-            test_accuracy = clf.score(X_train.iloc[fold_test].values, y_train[fold_test])
+            train_accuracy = clf.score(X_train.iloc[fold_train], y_train[fold_train])
+            test_accuracy = clf.score(X_train.iloc[fold_test], y_train[fold_test])
 
             # Precision
             train_precision = precision_score(y_train[fold_train], train_pred)
@@ -144,6 +185,8 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
             model.append(clf_name)
             classifier_details.append(clf)
             fold.append(k)
+            train_aucs.append(train_auc)
+            test_aucs.append(test_auc)
             train_accuracies.append(train_accuracy)
             test_accuracies.append(test_accuracy)
             train_precisions.append(train_precision)
@@ -162,7 +205,7 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
             test_false_negatives.append(test_fn)
 
             # Extract feature importances or coefficients
-            if hasattr(clf, "coef_"):  # For LogisticRegression
+            if hasattr(clf, "coef_"):  # For LogisticRegression and other linear models
                 feature_importances = clf.coef_.flatten()
                 temp_df = pd.DataFrame({
                     "model": [clf_name]*len(feature_importances),
@@ -172,7 +215,7 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
                 })
                 feature_importances_df = pd.concat([feature_importances_df, temp_df], ignore_index=True)
             
-            elif hasattr(clf, "feature_importances_"):  # For RandomForest, XGBoost
+            elif hasattr(clf, "feature_importances_"):  # For RandomForest, XGBoost, and other ensemble/non-linear models
                 feature_importances = clf.feature_importances_
                 temp_df = pd.DataFrame({
                     "model": [clf_name]*len(feature_importances),
@@ -191,6 +234,8 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
         "model": model,
         "classifier_details": classifier_details,
         "fold": fold,
+        "train_auc" : train_aucs,
+        "test_auc" : test_aucs,
         "train_accuracy": train_accuracies,
         "test_accuracy": test_accuracies,
         "train_precision": train_precisions,
@@ -209,6 +254,8 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
 
     # Aggregated results
     results_df = detailed_results_df.groupby('model').agg({
+        'train_auc' : 'mean',
+        'test_auc' : 'mean',
         'train_accuracy': 'mean',
         'test_accuracy': 'mean',
         'train_precision': 'mean',
@@ -230,7 +277,10 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
     results_df['test_positive_rate'] = (results_df['test_true_positives'] + results_df['test_false_negatives']) / (results_df['test_true_positives'] + results_df['test_false_negatives'] + results_df['test_false_positives'] + results_df['test_true_negatives'])
 
     # share message with complete:
-    print('training evaluation completed')
+    print('------------------')
+    print('Training evaluation completed')
+    print('------------------')
+
     return detailed_results_df, results_df, feature_importances_df, feature_importances_summary_df
 
 

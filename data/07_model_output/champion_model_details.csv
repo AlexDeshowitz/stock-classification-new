@@ -2,6 +2,8 @@ element,value
 model,Naive_bayes
 classifier_details,GaussianNB()
 fold,0
+train_auc,0.6174104250428238
+test_auc,0.6050426136363636
 train_accuracy,0.5769911504424778
 test_accuracy,0.5518867924528302
 train_precision,0.7115869017632241
