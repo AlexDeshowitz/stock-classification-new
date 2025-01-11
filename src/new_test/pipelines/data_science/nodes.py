@@ -60,7 +60,7 @@ def extract_feature_importances(X: np.array, model: BaseEstimator) -> pd.DataFra
     return feature_importance_df
 
 
-def get_roc_auc_score(y_pred: np.array, y_true: np.array) -> np.array:
+def get_roc_auc_score(y_pred: np.array, y_true: np.array, return_plot: bool) -> np.array:
 
     '''Function that returns the auc of the model being run with the functionality to 
     return the graph output which will be stored in Kedro outputs
@@ -78,9 +78,21 @@ def get_roc_auc_score(y_pred: np.array, y_true: np.array) -> np.array:
     fpr, tpr, thresholds = roc_curve(y_true = y_true, y_score = y_pred)
 
     # AUC calculation:
-    auc_output = auc( x = fpr, y = tpr ) 
+    auc_output = auc( x = fpr, y = tpr )
 
-    return auc_output
+    if return_plot == True:
+        fig, ax = plt.subplots()
+        ax.plot(fpr, tpr, color='blue', lw=2, label=f'ROC Curve (AUC = {auc_output:.2f})')
+        ax.plot([0, 1], [0, 1], color='grey', lw=1, linestyle='--')  # Random guess line
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        ax.set_title('ROC Curve' + str(clf))
+        ax.legend(loc='lower right')
+
+        return fig, auc_output
+    
+    else:
+        return auc_output
 
 
 def dynamic_import(class_path: str):
@@ -144,8 +156,8 @@ def train_models(X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.Series
                 train_pred_proba = clf.predict_proba(X_train.iloc[fold_train])[:, 1]
                 test_pred_proba = clf.predict_proba(X_train.iloc[fold_test])[:, 1] 
 
-                train_auc = get_roc_auc_score(y_pred = train_pred_proba, y_true = y_train[fold_train])
-                test_auc = get_roc_auc_score(y_pred = test_pred_proba, y_true = y_train[fold_test])
+                train_auc = get_roc_auc_score(y_pred = train_pred_proba, y_true = y_train[fold_train], return_plot = False)
+                test_auc = get_roc_auc_score(y_pred = test_pred_proba, y_true = y_train[fold_test], return_plot = False)
 
             else:
                 train_auc = np.nan
