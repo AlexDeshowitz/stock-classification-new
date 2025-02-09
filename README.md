@@ -2,13 +2,15 @@
 
 ## Overview
 
-This is your new Kedro project with Kedro-Viz setup, which was generated using `kedro 0.19.3`.
+This codebase encapsulates a predictive model that seeks not to predict the prices of individual stocks, but to give confidence that, based on the moving patterns of an equity or group of equities, over a period of time the equity will be higher
 
-Take a look at the [Kedro documentation](https://docs.kedro.org) to get started.
+This project was setup as a Kedro project with Kedro-Viz setup, which was generated using `kedro 0.19.3`.
+
+Take a look at the [Kedro documentation](https://docs.kedro.org) to learn more about Kedro
 
 ## Rules and guidelines
 
-In order to get the best out of the template:
+In order to get the best out of this pipeline:
 
 * Don't remove any lines from the `.gitignore` file we provide
 * Make sure your results can be reproduced by following a [data engineering convention](https://docs.kedro.org/en/stable/faq/faq.html#what-is-data-engineering-convention)
@@ -33,15 +35,15 @@ You can run your Kedro project with:
 kedro run
 ```
 
-## How to test your Kedro project
+## Pipeline structure
 
-Have a look at the files `src/tests/test_run.py` and `src/tests/pipelines/test_data_science.py` for instructions on how to write your tests. Run the tests as follows:
+* Data Ingestion (data_pull pipeline): Reads in data from the Yfinance API (specified in parameters files)
+* Data Engineering (data_engineering pipeline): Handles basic data cleaning and feature engineering
+* Data preparation (ML_pre_processing pipeline): Readies all data for the machine learning process, including train/test set creation
+* Machine learning (data_science pipeline): Trains a series of classifiers to help select a "champion" or "champions" to be used in final model development
+* Final model selection (TO BE DEVELOPED): Will take the final selected champion models created by the upstream machine learning steps to create a final model to be used in decisioning and equity evaluation
 
-```
-pytest
-```
 
-To configure the coverage threshold, look at the `.coveragerc` file.
 
 ## Project dependencies
 
