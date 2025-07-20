@@ -1,0 +1,18 @@
+# Additional requirements for time series forecasting
+# Install with: pip install -r requirements_forecasting.txt
+
+# Core dependencies (likely already installed)
+pandas>=1.3.0
+numpy>=1.20.0
+scikit-learn>=1.0.0
+matplotlib>=3.3.0
+seaborn>=0.11.0
+
+# Time series specific packages
+statsmodels>=0.13.0    # For ARIMA, ETS, and other statistical models
+prophet>=1.1.0         # Facebook Prophet (optional but recommended)
+
+# Optional advanced packages
+pmdarima>=2.0.0        # Auto-ARIMA (optional)
+xgboost>=1.6.0         # XGBoost for time series (optional)
+lightgbm>=3.3.0        # LightGBM for time series (optional) 
