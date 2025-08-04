@@ -2,7 +2,7 @@
 
 ## Overview
 
-This codebase encapsulates a predictive model that seeks not to predict the prices of individual stocks, but to give confidence that, based on the moving patterns of an equity or group of equities, over a period of time the equity will be higher
+This codebase encapsulates a predictive model that seeks not to predict the prices of individual stocks, but to give confidence that, based on the moving patterns of an equity or group of equities, over a period of time the equity will move higher or lower - depending on the specific use case.
 
 This project was setup as a Kedro project with Kedro-Viz setup, which was generated using `kedro 0.19.3`.
 
